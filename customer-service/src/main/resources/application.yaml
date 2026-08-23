@@ -1,0 +1,33 @@
+spring:
+  config:
+    import: "optional:file:.env[.properties]"
+  jpa:
+    defer-datasource-initialization: true
+---
+server:
+  port: 6060
+---
+spring:
+  config:
+    import: "optional:file:./customer-service/app.env[.properties]"
+  cloud:
+    stream:
+      bindings:
+        customer-events-out:
+          destination: customer-events
+      kafka:
+        binder:
+          brokers:
+            - localhost:8081
+            - localhost:8082
+            - localhost:8083
+          producer-properties:
+            key.serializer: org.apache.kafka.common.serialization.IntegerSerializer
+          # security config
+          configuration:
+            security.protocol: SASL_SSL
+            ssl.truststore.type: JKS
+            ssl.truststore.location: classpath:/kafka_config/kafka.truststore.jks
+            ssl.truststore.password: ${KAFKA_TRUSTSTORE_PASSWORD}
+            sasl.mechanism: PLAIN
+            sasl.jaas.config: 'org.apache.kafka.common.security.plain.PlainLoginModule required username="${KAFKA_USER}" password="${KAFKA_PASSWORD}";'

@@ -1,0 +1,203 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Netflux</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        :root { --netflix-red: #e50914; }
+        .no-scrollbar::-webkit-scrollbar { display: none; }
+        .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+        .modal-bg { background-color: rgba(0, 0, 0, 0.95); }
+
+        .card-hover { transition: all 0.4s cubic-bezier(0.165, 0.84, 0.44, 1); }
+        .card-hover:hover { transform: scale(1.08); z-index: 10; }
+
+        .gradient-title {
+            background: linear-gradient(90deg, #e50914, #ff4d4d);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+    </style>
+</head>
+<body class="bg-[#141414] text-white font-sans selection:bg-red-600/30">
+
+<header class="fixed top-0 inset-x-0 z-50 bg-black/90 px-8 py-4 flex justify-between items-center backdrop-blur-md border-b border-white/5">
+    <h1 class="text-4xl font-black tracking-tighter gradient-title select-none">NETFLUX</h1>
+
+    <div class="flex items-center gap-6">
+        <div class="text-right leading-tight">
+            <div id="customer-name" class="text-sm font-bold tracking-wide">Loading...</div>
+            <div id="current-genre" class="text-[10px] text-red-500 font-black uppercase tracking-[0.2em] mt-1"></div>
+        </div>
+
+        <div class="relative">
+            <select id="genre-selector" class="appearance-none bg-white/10 hover:bg-white/20 text-white text-xs font-bold rounded-full px-6 py-2 border border-white/10 outline-none cursor-pointer transition-all">
+                <option value="" disabled selected>GENRE</option>
+                <option value="Action">Action</option>
+                <option value="Adventure">Adventure</option>
+                <option value="Animation">Animation</option>
+                <option value="Comedy">Comedy</option>
+                <option value="Crime">Crime</option>
+                <option value="Documentary">Documentary</option>
+                <option value="Drama">Drama</option>
+                <option value="Family">Family</option>
+                <option value="Fantasy">Fantasy</option>
+                <option value="History">History</option>
+                <option value="Horror">Horror</option>
+                <option value="Music">Music</option>
+                <option value="Mystery">Mystery</option>
+                <option value="Romance">Romance</option>
+                <option value="Science Fiction">Science Fiction</option>
+                <option value="TV Movie">TV Movie</option>
+                <option value="Thriller">Thriller</option>
+                <option value="War">War</option>
+                <option value="Western">Western</option>
+            </select>
+        </div>
+        <div id="status" class="w-2 h-2 rounded-full bg-gray-600"></div>
+    </div>
+</header>
+
+<main class="pt-32 px-12 space-y-16 pb-20">
+    <section>
+        <h2 class="text-xl font-bold text-gray-400 mb-6 tracking-widest uppercase">Newly Added</h2>
+        <div id="NEWLY_ADDED" class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-6">
+        </div>
+    </section>
+
+    <section>
+        <h2 class="text-xl font-bold text-gray-400 mb-6 tracking-widest uppercase">Top Picks for You</h2>
+        <div id="PERSONALIZED" class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-6">
+        </div>
+    </section>
+</main>
+
+<div id="movie-modal" class="fixed inset-0 modal-bg z-[100] hidden flex items-center justify-center p-6 backdrop-blur-xl">
+    <div class="bg-zinc-950 max-w-5xl w-full rounded-2xl overflow-hidden relative border border-white/5 shadow-2xl">
+        <button onclick="closeModal()" class="absolute top-6 right-8 text-white/50 hover:text-white text-5xl font-thin z-50">&times;</button>
+        <div id="modal-content" class="flex flex-col md:flex-row"></div>
+    </div>
+</div>
+
+<script>
+    const params = new URLSearchParams(window.location.search);
+    const CUSTOMER_ID = params.get('customer') || 1;
+    const API_RECOMMENDATION = 'http://localhost:8080/api/recommendations';
+    const API_CUSTOMER = 'http://localhost:6060/api/customers';
+    const API_MOVIE = 'http://localhost:7070/api/movies';
+    const TMDB_BASE = 'https://image.tmdb.org/t/p/w500';
+
+    async function init() {
+        await fetchCustomerDetails();
+        await fetchInitialRecommendations();
+        startStream();
+        setupGenreListener();
+    }
+
+    async function fetchCustomerDetails() {
+        const res = await fetch(`${API_CUSTOMER}/${CUSTOMER_ID}`);
+        const data = await res.json();
+        document.getElementById('customer-name').innerText = data.name;
+        document.getElementById('current-genre').innerText = data.favoriteGenre;
+    }
+
+    function setupGenreListener() {
+        const selector = document.getElementById('genre-selector');
+        selector.addEventListener('change', async (e) => {
+            const newGenre = e.target.value;
+            selector.disabled = true;
+            try {
+                await fetch(`${API_CUSTOMER}/${CUSTOMER_ID}/genre`, {
+                    method: 'PATCH',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ favoriteGenre: newGenre })
+                });
+                document.getElementById('current-genre').innerText = newGenre;
+            } finally {
+                selector.disabled = false;
+            }
+        });
+    }
+
+    async function fetchInitialRecommendations() {
+        const res = await fetch(`${API_RECOMMENDATION}/${CUSTOMER_ID}`);
+        const updates = await res.json();
+        updates.forEach(processUpdate);
+    }
+
+    function startStream() {
+        const source = new EventSource(`${API_RECOMMENDATION}/${CUSTOMER_ID}/stream`);
+        source.onopen = () => document.getElementById('status').className = 'w-2 h-2 rounded-full bg-green-500';
+        source.onmessage = (e) => processUpdate(JSON.parse(e.data));
+        source.onerror = () => document.getElementById('status').className = 'w-2 h-2 rounded-full bg-red-600';
+    }
+
+    function processUpdate(update) {
+        const container = document.getElementById(update.type);
+        if (!container) return;
+
+        if (update.type === 'NEWLY_ADDED') {
+            update.movies.forEach(m => {
+                const card = createMovieCard(m);
+                container.prepend(card);
+            });
+            // Maintain 6 items
+            while (container.children.length > 6) {
+                container.removeChild(container.lastChild);
+            }
+        } else {
+            container.innerHTML = '';
+            update.movies.slice(0, 6).forEach(m => {
+                container.appendChild(createMovieCard(m));
+            });
+        }
+    }
+
+    function createMovieCard(movie) {
+        const card = document.createElement('div');
+        card.className = "card-hover cursor-pointer";
+        card.onclick = () => openMovie(movie.movieId);
+        card.innerHTML = `
+            <div class="relative rounded-lg overflow-hidden shadow-xl aspect-[2/3]">
+                <img src="${TMDB_BASE}${movie.posterPath}" class="w-full h-full object-cover">
+                <div class="absolute inset-0 bg-gradient-to-t from-black/90 via-transparent to-transparent"></div>
+                <div class="absolute bottom-0 p-3 w-full">
+                    <p class="text-[9px] font-black text-red-600 uppercase tracking-widest">${movie.genres[0] || ''}</p>
+                    <h3 class="text-xs font-bold truncate uppercase text-white">${movie.title}</h3>
+                </div>
+            </div>
+        `;
+        return card;
+    }
+
+    async function openMovie(movieId) {
+        const res = await fetch(`${API_MOVIE}/${movieId}`);
+        const m = await res.json();
+        const content = document.getElementById('modal-content');
+        content.innerHTML = `
+            <img src="${TMDB_BASE}${m.posterPath}" class="w-full md:w-2/5 object-cover h-[600px]">
+            <div class="p-10 flex-1 flex flex-col justify-center">
+                <h2 class="text-5xl font-black mb-4 uppercase italic leading-none tracking-tighter">${m.title}</h2>
+                <div class="flex items-center gap-4 text-xs font-bold text-gray-500 mb-6">
+                    <span class="text-white border border-white/20 px-2 py-0.5 rounded">${m.releaseDate.split('-')[0]}</span>
+                    <span class="text-green-500">★ ${m.voteAverage.toFixed(1)}</span>
+                    <span>${m.runtime}m</span>
+                </div>
+                <p class="text-gray-400 text-lg leading-relaxed mb-8 italic">${m.overview}</p>
+                <div class="grid grid-cols-2 gap-6 pt-6 border-t border-white/10">
+                    <div><p class="text-[10px] text-gray-600 uppercase font-black mb-1">Budget</p><p class="text-xl font-bold font-mono">$${(m.budget/1e6).toFixed(1)}M</p></div>
+                    <div><p class="text-[10px] text-gray-600 uppercase font-black mb-1">Revenue</p><p class="text-xl font-bold font-mono text-green-500">$${(m.revenue/1e6).toFixed(1)}M</p></div>
+                </div>
+            </div>
+        `;
+        document.getElementById('movie-modal').classList.remove('hidden');
+    }
+
+    function closeModal() { document.getElementById('movie-modal').classList.add('hidden'); }
+
+    init();
+</script>
+</body>
+</html>

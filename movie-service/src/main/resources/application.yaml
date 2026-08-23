@@ -1,0 +1,31 @@
+app:
+  import-movies: true
+---
+server:
+  port: 7070
+---
+spring:
+  config:
+    import: "optional:file:./movie-service/app.env[.properties]"
+  jpa:
+    defer-datasource-initialization: true
+  cloud:
+    stream:
+      bindings:
+        movie-events-out:
+          destination: movie-events
+      kafka:
+        binder:
+          brokers:
+            - localhost:8081
+            - localhost:8082
+            - localhost:8083
+          configuration:
+            security.protocol: SASL_SSL
+            ssl.truststore.type: JKS
+            ssl.truststore.location: classpath:/kafka_config/kafka.truststore.jks
+            ssl.truststore.password: ${KAFKA_TRUSTSTORE_PASSWORD}
+            sasl.mechanism: PLAIN
+            sasl.jaas.config: 'org.apache.kafka.common.security.plain.PlainLoginModule required username="${KAFKA_USER}" password="${KAFKA_PASSWORD}";'
+          producer-properties:
+            key.serializer: org.apache.kafka.common.serialization.IntegerSerializer
