@@ -24,7 +24,8 @@ The application is composed of three services.
 | Movie Service | `7070` | Movie catalog management | Produces `movie-events` |
 | Recommendation Service | `8080` | Generates and streams recommendations | Consumes both topics |
 
-
+**Architecture**
+![Project architecture](_illustration/architecture_img.png)
 ---
 
 ### 2.1. Customer Service
@@ -122,6 +123,7 @@ Java | Spring Boot | Spring Web | Spring Data | Spring Cloud | Apache Kafka
 
 
 ## 5.source
-
-1. kafka configuration https://github.com/luismr/kafka-cluster-docker-compose
-2. 
+1. [Apache Kafka with Spring Boot 3 and Cloud Stream](https://dev.to/olymahmud/simplifying-kafka-with-spring-boot-3-and-cloud-stream-1p6)
+2. [kafka configuration](https://github.com/luismr/kafka-cluster-docker-compose)
+3. [Spring cloud stream with Apache kafka MQ](https://medium.com/@ganeshKarunanidhi/spring-cloud-stream-with-apache-kafka-mq-1a6cbd1ea617)
+4. [Udemy course](https://www.udemy.com/course/kafka-java/?srsltid=AfmBOoqUQEv7l9-ik-suCGH1uG6feo8jZKLvM-EFfLlzKNGt03_JF9EG&couponCode=CP260817G1)
