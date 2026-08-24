@@ -4,9 +4,14 @@ A real-time, event-driven movie recommendation system built with Spring Boot, Ap
 
 The system consists of three independent services that communicate asynchronously through Kafka events. Customers can change their favorite genre, movies can be added to the catalog, and the recommendation service reacts to these events and pushes updated recommendations to connected clients in real time.
 
-This Event-Driven Architecture uses **Apache Kafka** with KRaft for cluster management. The Kafka cluster consists of **three(3) nodes** and is secured using **SASL authentication** and **SSL/TLS encryption.**
+This Event-Driven Architecture uses **Apache Kafka** with KRaft for cluster management. The Kafka cluster consists of **three (3) nodes** and is secured using **SASL authentication** and **SSL/TLS encryption.**
 
-## 1.Features
+## 1. Prerequisites
+- Java 21+ (uses virtual threads)
+- Docker & Docker Compose v2.20+
+- Maven 3.9+
+
+## 2. Features
 
 - Customer management
 - Movie management
@@ -14,7 +19,7 @@ This Event-Driven Architecture uses **Apache Kafka** with KRaft for cluster mana
 - Newly added movie recommendations
 
 
-## 2. Services
+## 3. Services
 
 The application is composed of three services.
 
@@ -34,7 +39,7 @@ https://github.com/user-attachments/assets/fc512228-05d2-4ef0-916a-ab906cc220a3
 
 ---
 
-### 2.1. Customer Service
+### 3.1. Customer Service
 The Customer Service manages customer information and is responsible for:
 - Retrieving customer information
 - Updating a customer's favorite genre
@@ -49,10 +54,10 @@ A customer record contains the following information:
     "favorite_genre": "Action"
 }
 ```
-This service is boostrapped with 3 records. (see resource, data.sql)
+This service is bootstrapped with 3 records. (see resource, data.sql)
 
 
-### 2.2. Movie Service
+### 3.2. Movie Service
 The Movie Service manages the movie catalog and is responsible for:
 - Adding movies
 - Retrieving movies
@@ -84,10 +89,10 @@ A movie record contains the following information:
 }
 ```
 
-This service is boostrapped with ~100 000 records. (see resource, movies.jsonl and data.sql).
+This service is bootstrapped with ~100 000 records. (see resource, movies.jsonl and data.sql).
 Note: One movie from `movies.jsonl` is consumed **every 3 second** for demo purpose. 
  
-### 2.3. Recommendation Service
+### 3.3. Recommendation Service
 
 The Recommendation Service is the core of the application.
 It consumes events from `customer-events` and `movie-events` topics and uses those events to update recommendation information.
@@ -98,16 +103,16 @@ It is responsible for:
 - Provide REST APIs
 - Provide real-time Server-Sent Events streams
 
-## 3. Running the Application
+## 4. Running the Application
 1- At the root of the project, run the command:
 ```
 docker compose up -d
 ```
 2- Run in the following order:
 ```
-    customer-service
-    movie-service
-    recommendation-service
+    first: customer-service
+    second: movie-service
+    third: recommendation-service
 ```
 3- in the browser, access and test the app
 ```yaml
@@ -123,12 +128,12 @@ http://localhost:8080/?customer=2
 docker compose down -v
 ```
 
-## 4. Technology Stack
+## 5. Technology Stack
 Java | Spring Boot | Spring Web | Spring Data | Spring Cloud | Apache Kafka
 | Reactor | Server-Sent-Event | Maven | JavaScript
 
 
-## 5.source
+## 6. References
 1. [Apache Kafka with Spring Boot 3 and Cloud Stream](https://dev.to/olymahmud/simplifying-kafka-with-spring-boot-3-and-cloud-stream-1p6)
 2. [kafka configuration](https://github.com/luismr/kafka-cluster-docker-compose)
 3. [Spring cloud stream with Apache kafka MQ](https://medium.com/@ganeshKarunanidhi/spring-cloud-stream-with-apache-kafka-mq-1a6cbd1ea617)
