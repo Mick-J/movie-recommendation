@@ -26,6 +26,12 @@ The application is composed of three services.
 
 **Architecture**
 ![Project architecture](_illustration/architecture_img.png)
+
+
+
+https://github.com/user-attachments/assets/fc512228-05d2-4ef0-916a-ab906cc220a3
+
+
 ---
 
 ### 2.1. Customer Service
